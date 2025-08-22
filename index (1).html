@@ -1,0 +1,277 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Recipes Browser — Assessment Frontend</title>
+  <style>
+    :root {
+      --bg: #0b1020; /* deep navy */
+      --panel: #121834;
+      --muted: #97a0c3;
+      --text: #e6e9ff;
+      --accent: #6aa6ff;
+      --accent-2: #7df9d1;
+      --danger: #ff7a7a;
+      --shadow: 0 10px 30px rgba(0,0,0,.35);
+      --radius: 14px;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0; padding: 24px; background: radial-gradient(1200px 800px at 80% -10%, rgba(106,166,255,.18), transparent),
+                                      radial-gradient(800px 600px at -10% 10%, rgba(125,249,209,.15), transparent),
+                                      var(--bg);
+      color: var(--text); font: 15px/1.4 system-ui, -apple-system, Segoe UI, Roboto, "Helvetica Neue", Arial;
+    }
+    .container { max-width: 1100px; margin: 0 auto; }
+    header { display:flex; align-items:center; justify-content:space-between; margin-bottom: 18px; }
+    .title { font-size: 22px; letter-spacing: .4px; font-weight: 700; }
+    .card { background: linear-gradient(180deg, rgba(255,255,255,.04), rgba(255,255,255,.02)); border: 1px solid rgba(255,255,255,.06);
+            backdrop-filter: blur(6px); border-radius: var(--radius); box-shadow: var(--shadow); }
+    .controls { display:grid; grid-template-columns: repeat(12, 1fr); gap:10px; padding:16px; }
+    .controls .field { grid-column: span 3; display:flex; flex-direction:column; gap:6px; }
+    .controls .field.small { grid-column: span 2; }
+    label { color: var(--muted); font-size: 12px; letter-spacing:.4px; }
+    input, select { background: var(--panel); border: 1px solid rgba(255,255,255,.08); color: var(--text);
+                    border-radius: 10px; padding: 10px 12px; outline: none; transition: border .2s; }
+    input:focus, select:focus { border-color: var(--accent); }
+    .btns { display:flex; gap:10px; align-items:center; }
+    button { cursor:pointer; background: linear-gradient(180deg, var(--accent), #4d86ff); color:white; border:none; padding:10px 14px;
+             border-radius: 12px; font-weight: 600; letter-spacing:.3px; box-shadow: 0 6px 16px rgba(106,166,255,.35); }
+    button.secondary { background: linear-gradient(180deg, #1f274a, #161d3a); color: #d6ddff; box-shadow: inset 0 0 0 1px rgba(255,255,255,.08); }
+    button.ghost { background: transparent; border: 1px solid rgba(255,255,255,.12); }
+
+    .table-wrap { margin-top: 16px; overflow: auto; border-radius: var(--radius); border:1px solid rgba(255,255,255,.08); }
+    table { width: 100%; border-collapse: collapse; min-width: 900px; }
+    th, td { padding: 10px 12px; border-bottom: 1px solid rgba(255,255,255,.06); vertical-align: top; }
+    th { text-align: left; color: #c9d2ff; font-size: 12px; letter-spacing: .3px; text-transform: uppercase; }
+    tbody tr:hover { background: rgba(106,166,255,.08); }
+    .muted { color: var(--muted); }
+    .pill { display:inline-flex; align-items:center; gap:6px; padding: 4px 8px; border-radius: 999px; font-size: 12px; background: rgba(125,249,209,.12); color: var(--accent-2); }
+    .rating { font-weight:700; }
+    .desc { color:#dfe5ff; opacity:.9; max-width: 560px; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden; }
+    .row-actions { display:flex; gap:8px; }
+
+    .footer { display:flex; justify-content:space-between; align-items:center; padding: 12px 16px; }
+    .pagination { display:flex; align-items:center; gap:8px; }
+    .pagination input { width: 60px; text-align: center; }
+
+    .note { margin-top: 16px; color: var(--muted); font-size: 12px; }
+    .error { color: var(--danger); font-weight:600; }
+    .ok { color: var(--accent-2); font-weight:600; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <header>
+      <div class="title">🍲 Recipes Browser — API Frontend</div>
+      <div class="muted">Backend: <code id="baseUrlLabel"></code></div>
+    </header>
+
+    <!-- Controls -->
+    <section class="card">
+      <div class="controls">
+        <div class="field">
+          <label>API Base URL</label>
+          <input id="baseUrl" placeholder="http://127.0.0.1:5000" />
+        </div>
+        <div class="field">
+          <label>Title (contains)</label>
+          <input id="qTitle" placeholder="e.g. pie" />
+        </div>
+        <div class="field">
+          <label>Cuisine (contains)</label>
+          <input id="qCuisine" placeholder="e.g. Italian" />
+        </div>
+        <div class="field small">
+          <label>Rating (op+value)</label>
+          <input id="qRating" placeholder=">=4.5" />
+        </div>
+        <div class="field small">
+          <label>Total Time (op+value)</label>
+          <input id="qTotalTime" placeholder="<=60" />
+        </div>
+        <div class="field small">
+          <label>Calories (op+value)</label>
+          <input id="qCalories" placeholder="<=400" />
+        </div>
+        <div class="field small">
+          <label>Limit</label>
+          <select id="limit">
+            <option>10</option>
+            <option>20</option>
+            <option>50</option>
+          </select>
+        </div>
+        <div class="btns" style="grid-column: span 12;">
+          <button id="btnSearch">Search</button>
+          <button id="btnReset" class="secondary">Reset</button>
+          <button id="btnLoad" class="ghost" title="Fetch paginated list sorted by rating">Load Paginated</button>
+        </div>
+      </div>
+    </section>
+
+    <!-- Results -->
+    <div class="table-wrap card">
+      <table id="resultsTable">
+        <thead>
+          <tr>
+            <th>ID</th>
+            <th>Title</th>
+            <th>Cuisine</th>
+            <th>Rating</th>
+            <th>Prep</th>
+            <th>Cook</th>
+            <th>Total</th>
+            <th>Serves</th>
+            <th>Calories</th>
+            <th>Description</th>
+          </tr>
+        </thead>
+        <tbody></tbody>
+      </table>
+      <div class="footer">
+        <div id="status" class="muted">Ready.</div>
+        <div class="pagination">
+          <button id="prev">Prev</button>
+          <span class="muted">Page</span>
+          <input id="page" value="1" />
+          <button id="next">Next</button>
+        </div>
+      </div>
+    </div>
+
+    <p class="note">
+      Tip: for the operator fields, use formats like <code>>=</code>, <code><=</code>, <code>></code>, <code><</code>, or <code>=</code> followed by a number.
+      Examples: <code>>=4.5</code>, <code><=60</code>, <code><=400</code>.
+    </p>
+
+  </div>
+
+  <script>
+    // --- Config ---
+    const baseUrlInput = document.getElementById('baseUrl');
+    const baseUrlLabel = document.getElementById('baseUrlLabel');
+    const defaultBaseUrl = 'http://127.0.0.1:5000';
+
+    function getBaseUrl(){
+      const v = (baseUrlInput.value || '').trim();
+      return v || defaultBaseUrl;
+    }
+    function setBaseUrlLabel(){ baseUrlLabel.textContent = getBaseUrl(); }
+
+    // --- Elements ---
+    const tbody = document.querySelector('#resultsTable tbody');
+    const statusEl = document.getElementById('status');
+    const pageInput = document.getElementById('page');
+    const limitSel = document.getElementById('limit');
+
+    const qTitle = document.getElementById('qTitle');
+    const qCuisine = document.getElementById('qCuisine');
+    const qRating = document.getElementById('qRating');
+    const qTotalTime = document.getElementById('qTotalTime');
+    const qCalories = document.getElementById('qCalories');
+
+    const btnSearch = document.getElementById('btnSearch');
+    const btnReset = document.getElementById('btnReset');
+    const btnLoad  = document.getElementById('btnLoad');
+    const btnPrev  = document.getElementById('prev');
+    const btnNext  = document.getElementById('next');
+
+    // --- Utilities ---
+    function htmlEscape(s){
+      return (s==null?"":String(s))
+        .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
+        .replace(/"/g,'&quot;').replace(/'/g,'&#39;');
+    }
+    function parseCalories(nutrients){
+      // nutrients is an object; calories may be like "123 kcal" or number
+      if(!nutrients) return '';
+      const raw = nutrients.calories;
+      if(raw == null) return '';
+      const m = String(raw).match(/\d+/);
+      return m ? m[0] : '';
+    }
+
+    function renderRows(items){
+      tbody.innerHTML = items.map(r => {
+        const cal = parseCalories(r.nutrients);
+        return `<tr>
+          <td>${htmlEscape(r.id)}</td>
+          <td>${htmlEscape(r.title)}</td>
+          <td><span class="pill">${htmlEscape(r.cuisine||'')}</span></td>
+          <td class="rating">${r.rating==null?'':Number(r.rating).toFixed(1)}</td>
+          <td>${r.prep_time ?? ''}</td>
+          <td>${r.cook_time ?? ''}</td>
+          <td>${r.total_time ?? ''}</td>
+          <td>${htmlEscape(r.serves||'')}</td>
+          <td>${cal}</td>
+          <td class="desc">${htmlEscape(r.description||'')}</td>
+        </tr>`;
+      }).join('');
+    }
+
+    function setStatus(msg, ok=false, err=false){
+      statusEl.textContent = msg;
+      statusEl.className = ok? 'ok' : err? 'error' : 'muted';
+    }
+
+    async function fetchPaginated(page=1, limit=10){
+      const base = getBaseUrl();
+      const url = `${base}/api/recipes?page=${page}&limit=${limit}`;
+      setStatus('Loading paginated…');
+      try{
+        const res = await fetch(url);
+        if(!res.ok) throw new Error(`HTTP ${res.status}`);
+        const json = await res.json();
+        renderRows(json.data || []);
+        setStatus(`Loaded page ${json.page} / ${Math.ceil((json.total||0)/(json.limit||limit))} — total ${json.total} records`, true);
+      }catch(e){ setStatus(`Failed: ${e.message}`, false, true); }
+    }
+
+    async function fetchSearch(){
+      const base = getBaseUrl();
+      const params = new URLSearchParams();
+      if(qTitle.value.trim()) params.append('title', qTitle.value.trim());
+      if(qCuisine.value.trim()) params.append('cuisine', qCuisine.value.trim());
+      if(qRating.value.trim()) params.append('rating', qRating.value.trim());
+      if(qTotalTime.value.trim()) params.append('total_time', qTotalTime.value.trim());
+      if(qCalories.value.trim()) params.append('calories', qCalories.value.trim());
+      const url = `${base}/api/recipes/search?${params.toString()}`;
+      setStatus('Searching…');
+      try{
+        const res = await fetch(url);
+        if(!res.ok) throw new Error(`HTTP ${res.status}`);
+        const json = await res.json();
+        renderRows(json.data || []);
+        setStatus(`Found ${json.data ? json.data.length : 0} records`, true);
+      }catch(e){ setStatus(`Failed: ${e.message}`, false, true); }
+    }
+
+    // --- Events ---
+    baseUrlInput.addEventListener('input', setBaseUrlLabel);
+    btnLoad.addEventListener('click', () => fetchPaginated(Number(pageInput.value||1), Number(limitSel.value||10)));
+    btnSearch.addEventListener('click', fetchSearch);
+    btnReset.addEventListener('click', () => {
+      qTitle.value = qCuisine.value = qRating.value = qTotalTime.value = qCalories.value = '';
+      pageInput.value = '1';
+      limitSel.value = '10';
+      fetchPaginated(1, 10);
+    });
+    btnPrev.addEventListener('click', () => {
+      let p = Math.max(1, Number(pageInput.value||1) - 1);
+      pageInput.value = String(p);
+      fetchPaginated(p, Number(limitSel.value||10));
+    });
+    btnNext.addEventListener('click', () => {
+      let p = Number(pageInput.value||1) + 1;
+      pageInput.value = String(p);
+      fetchPaginated(p, Number(limitSel.value||10));
+    });
+
+    // --- Init ---
+    baseUrlInput.value = defaultBaseUrl; setBaseUrlLabel();
+    fetchPaginated(1, 10);
+  </script>
+</body>
+</html>
